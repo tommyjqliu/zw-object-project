@@ -1,38 +1,40 @@
-// (C) Copyright 2002-2007 by Autodesk, Inc. 
-//
-// Permission to use, copy, modify, and distribute this software in
-// object code form for any purpose and without fee is hereby granted, 
-// provided that the above copyright notice appears in all copies and 
-// that both that copyright notice and the limited warranty and
-// restricted rights notice below appear in all supporting 
-// documentation.
-//
-// AUTODESK PROVIDES THIS PROGRAM "AS IS" AND WITH ALL FAULTS. 
-// AUTODESK SPECIFICALLY DISCLAIMS ANY IMPLIED WARRANTY OF
-// MERCHANTABILITY OR FITNESS FOR A PARTICULAR USE.  AUTODESK, INC. 
-// DOES NOT WARRANT THAT THE OPERATION OF THE PROGRAM WILL BE
-// UNINTERRUPTED OR ERROR FREE.
-//
-// Use, duplication, or disclosure by the U.S. Government is subject to 
-// restrictions set forth in FAR 52.227-19 (Commercial Computer
-// Software - Restricted Rights) and DFAR 252.227-7013(c)(1)(ii)
-// (Rights in Technical Data and Computer Software), as applicable.
-//
 
-//-----------------------------------------------------------------------------
-//----- SampleReactor.cpp : Implementation of SampleReactor
-//-----------------------------------------------------------------------------
 #include "pch.h"
 #include "SampleReactor.h"
 
-//-----------------------------------------------------------------------------
-ACRX_CONS_DEFINE_MEMBERS(SampleReactor, AcDbEntityReactor, 1)
+ACRX_CONS_DEFINE_MEMBERS(SampleReactor, AcDbObject, 1)
 
-//-----------------------------------------------------------------------------
-SampleReactor::SampleReactor() : AcDbEntityReactor() {
+void SampleReactor::modified(const AcDbObject* pObj) {
+	AcDbLine *pLine = AcDbLine::cast(pObj);
+	if (!pLine) {
+		return;//反应器很容易附着到错误的实体上，要注意检查
+	}
+	AcDbLine *pLine2 = nullptr;
+	if (acdbOpenObject((AcDbObject*&)pLine2, mId, AcDb::kForWrite) == Acad::eOk) {
+		AcGePoint3d p = pLine->startPoint();
+		AcGePoint3d q = pLine->endPoint();
+		AcGeVector3d v = q - p;
+		double len = v.length();
+		p = pLine2->startPoint();
+		q = pLine2->endPoint();
+		v = q - p;
+		v = len * mFactor * v.normal();
+		pLine2->setEndPoint(p + v);
+		pLine2->close();
+	}
 }
 
-//-----------------------------------------------------------------------------
-SampleReactor::~SampleReactor() {
+Acad::ErrorStatus SampleReactor::dwgInFields(AcDbDwgFiler* filer) {
+	assertWriteEnabled();
+	AcDbObject::dwgInFields(filer);
+	filer->readItem(&mFactor);
+	filer->readItem((AcDbSoftPointerId*)&mId);
+	return filer->filerStatus();
 }
-
+Acad::ErrorStatus SampleReactor::dwgOutFields(AcDbDwgFiler* filer) const {
+	assertReadEnabled();
+	AcDbObject::dwgOutFields(filer);
+	filer->writeItem(mFactor);
+	filer->writeItem((AcDbSoftPointerId&)mId);
+	return filer->filerStatus();
+}
