@@ -4,9 +4,7 @@
 #include <aced.h>
 #include <rxregsvc.h>
 #include <dbproxy.h>
-
 #include "SampleCustEnt.h"
-
 
 //运行时类型识别函数的实现
 ACRX_DXF_DEFINE_MEMBERS(
@@ -19,7 +17,7 @@ ACRX_DXF_DEFINE_MEMBERS(
 	| WEB Address : Your company WEB site address
 )
 
-
+Adesk::UInt32 SampleCustEnt::kCurrentVersionNumber = 1;
 
 SampleCustEnt::SampleCustEnt() {
 
@@ -27,14 +25,6 @@ SampleCustEnt::SampleCustEnt() {
 SampleCustEnt::SampleCustEnt(AcGePoint3d center, double radius) {
 	m_center = center;
 	m_radius = radius;
-	AcGePoint3d left(m_center.x - m_radius, m_center.y, 0);
-	m_left = left;
-	AcGePoint3d right(m_center.x + m_radius, m_center.y, 0);
-	m_right = right;
-	AcGePoint3d up(m_center.x, m_center.y + m_radius, 0);
-	m_up = up;
-	AcGePoint3d down(m_center.x, m_center.y - m_radius, 0);
-	m_down = down;
 }
 SampleCustEnt::~SampleCustEnt() {
 
@@ -77,94 +67,95 @@ Acad::ErrorStatus SampleCustEnt::subTransformBy(const AcGeMatrix3d& xform) {
 
 Acad::ErrorStatus SampleCustEnt::subGetGripPoints(AcGePoint3dArray& gripPoints, AcDbIntArray & osnapModes, AcDbIntArray & geomIds) const {
 	assertReadEnabled();
+	AcGePoint3d left(m_center.x - m_radius, m_center.y, 0);
+	AcGePoint3d right(m_center.x + m_radius, m_center.y, 0);
+	AcGePoint3d up(m_center.x, m_center.y + m_radius, 0);
+	AcGePoint3d down(m_center.x, m_center.y - m_radius, 0);
+
 	gripPoints.append(m_center);
-	gripPoints.append(m_left);
-	gripPoints.append(m_right);
-	gripPoints.append(m_up);
-	gripPoints.append(m_down);
+	gripPoints.append(left);
+	gripPoints.append(right);
+	gripPoints.append(up);
+	gripPoints.append(down);
 	return Acad::eOk;
 }
 Acad::ErrorStatus SampleCustEnt::subMoveGripPointsAt(const AcDbIntArray & indices, const AcGeVector3d& offset) {
 	assertWriteEnabled();
-	AcGeVector3d original(0, 0, 0);
+	AcGeVector3d original;
+	AcGeVector3d selectVector;
+	double diff = 0;
 	switch (indices[0]) {
-	case(0):
+	case 0:
 		m_center += offset;
-		m_left += offset;
-		m_right += offset;
-		m_up += offset;
-		m_down += offset;
 		break;
-	case(1):
-		original = m_left - m_center;
-		original += offset;
-		m_radius = original.length();
-		m_left = AcGePoint3d(m_center.x - m_radius, m_center.y, 0);
-		m_right = AcGePoint3d(m_center.x + m_radius, m_center.y, 0);
-		m_up = AcGePoint3d(m_center.x, m_center.y + m_radius, 0);
-		m_down = AcGePoint3d(m_center.x, m_center.y - m_radius, 0);
+	case 1:
+		selectVector = AcGeVector3d(-m_radius, 0, 0);
+		m_radius = (selectVector + offset).length();
 		break;
-	case(2):
-		original = (m_right - m_center);
-		original += offset;
-		m_radius = original.length();
-		m_left = AcGePoint3d(m_center.x - m_radius, m_center.y, 0);
-		m_right = AcGePoint3d(m_center.x + m_radius, m_center.y, 0);
-		m_up = AcGePoint3d(m_center.x, m_center.y + m_radius, 0);
-		m_down = AcGePoint3d(m_center.x, m_center.y - m_radius, 0);
+	case 2:
+		selectVector = AcGeVector3d(m_radius, 0, 0);
+		m_radius = (selectVector + offset).length();
 		break;
-
-	case(3):
-		original = (m_up - m_center);
-		original += offset;
-		m_radius = original.length();
-		m_left = AcGePoint3d(m_center.x - m_radius, m_center.y, 0);
-		m_right = AcGePoint3d(m_center.x + m_radius, m_center.y, 0);
-		m_up = AcGePoint3d(m_center.x, m_center.y + m_radius, 0);
-		m_down = AcGePoint3d(m_center.x, m_center.y - m_radius, 0);
+	case 3:
+		selectVector = AcGeVector3d(0, m_radius, 0);
+		m_radius = (selectVector + offset).length();
 		break;
-
-	case(4):
-		original = (m_down - m_center);
-		original += offset;
-		m_radius = original.length();
-		m_left = AcGePoint3d(m_center.x - m_radius, m_center.y, 0);
-		m_right = AcGePoint3d(m_center.x + m_radius, m_center.y, 0);
-		m_up = AcGePoint3d(m_center.x, m_center.y + m_radius, 0);
-		m_down = AcGePoint3d(m_center.x, m_center.y - m_radius, 0);
+	case 4:
+		selectVector = AcGeVector3d(0, -m_radius, 0);
+		m_radius = (selectVector + offset).length();
 		break;
 	}
+	
 	return Acad::eOk;
 }
 
 Acad::ErrorStatus SampleCustEnt::subGetOsnapPoints(AcDb::OsnapMode osnapMode, Adesk::GsMarker gsSelectionMark, const AcGePoint3d & pickPoint, const AcGePoint3d & lastPoint, const AcGeMatrix3d & viewXform, AcGePoint3dArray & snapPoints, AcDbIntArray & geomIds) const
 {
-	return Acad::ErrorStatus();
+	assertReadEnabled();
+	AcDbCircle circle;
+	circle.setCenter(m_center);
+	circle.setRadius(m_radius);
+	return circle.getOsnapPoints(osnapMode, gsSelectionMark, pickPoint, lastPoint, viewXform, snapPoints, geomIds);
 }
 
 
 Acad::ErrorStatus SampleCustEnt::dwgInFields(AcDbDwgFiler * pFiler)
 {
-
+	assertWriteEnabled();
+	//----- Read parent class information first.
+	Acad::ErrorStatus es = AcDbEntity::dwgInFields(pFiler);
+	if (es != Acad::eOk)
+		return (es);
+	//----- Object version number needs to be read first
+	Adesk::UInt32 version = 0;
+	if ((es = pFiler->readUInt32(&version)) != Acad::eOk)
+		return (es);
+	if (version > SampleCustEnt::kCurrentVersionNumber)
+		return (Acad::eMakeMeProxy);
+	if (version < SampleCustEnt::kCurrentVersionNumber)
+		return (Acad::eMakeMeProxy);
+	//----- Read params
 	pFiler->readPoint3d(&m_center);
-	pFiler->readPoint3d(&m_left);
-	pFiler->readPoint3d(&m_right);
-	pFiler->readPoint3d(&m_up);
-	pFiler->readPoint3d(&m_down);
+	pFiler->readDouble(&m_radius);
+	return (pFiler->filerStatus());
 
-	return Acad::ErrorStatus();
 }
 
 
 
 Acad::ErrorStatus SampleCustEnt::dwgOutFields(AcDbDwgFiler * pFiler) const
 {
+	assertReadEnabled();
+	//----- Save parent class information first.
+	Acad::ErrorStatus es = AcDbEntity::dwgOutFields(pFiler);
+	if (es != Acad::eOk)
+		return (es);
+	//----- Object version number needs to be saved first
+	if ((es = pFiler->writeUInt32(SampleCustEnt::kCurrentVersionNumber)) != Acad::eOk)
+		return (es);
+	//----- Output params
 	pFiler->writePoint3d(m_center);
-	pFiler->writePoint3d(m_left);
-	pFiler->writePoint3d(m_right);
-	pFiler->writePoint3d(m_up);
-	pFiler->writePoint3d(m_down);
+	pFiler->writeDouble(m_radius);
+	return (pFiler->filerStatus());
 
-
-	return Acad::ErrorStatus();
 }

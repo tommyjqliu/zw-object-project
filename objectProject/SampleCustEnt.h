@@ -3,10 +3,6 @@
 class __declspec(dllexport) SampleCustEnt : public AcDbEntity {
 public:
 	AcGePoint3d m_center = AcGePoint3d::kOrigin;
-	AcGePoint3d m_left;
-	AcGePoint3d m_right;
-	AcGePoint3d m_up;
-	AcGePoint3d m_down;
 	double m_radius = 0;
 	ACRX_DECLARE_MEMBERS(SampleCustEnt);//定义了一些运行时类型识别和转换函数，如cast, desc, isA等
 protected:
