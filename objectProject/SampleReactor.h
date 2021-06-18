@@ -6,6 +6,7 @@ class __declspec(dllexport) SampleReactor : public AcDbObject {
 public:
 	ACRX_DECLARE_MEMBERS(SampleReactor);
 	SampleReactor() {};
+	virtual ~SampleReactor();
 	void eLinkage(AcDbObjectId i, double f = 1.0) { mId = i; mFactor = f; };
 	void modified(const AcDbObject*);
 	Acad::ErrorStatus dwgInFields(AcDbDwgFiler*);
@@ -15,6 +16,6 @@ private:
 	double mFactor; //ÒÆ¶¯µÄ±¶Êý
 };
 
-#ifdef ARXTEMPLATE_MODULE
+#ifdef ARXPROJECT1_MODULE
 ACDB_REGISTER_OBJECT_ENTRY_AUTO(SampleReactor)
 #endif
