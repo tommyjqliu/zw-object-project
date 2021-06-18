@@ -53,10 +53,8 @@ void SampleCustEnt::setRadius(double radius)
 }
 
 
-
 Adesk::Boolean SampleCustEnt::subWorldDraw(AcGiWorldDraw *mode) {
 	assertReadEnabled();
-
 	mode->geometry().circle(m_center, m_radius, AcGeVector3d::kZAxis);
 	return (AcDbEntity::subWorldDraw(mode));
 }
@@ -71,7 +69,11 @@ Adesk::UInt32 SampleCustEnt::subSetAttributes(AcGiDrawableTraits *traits) {
 	return 0;
 }
 
-
+Acad::ErrorStatus SampleCustEnt::subTransformBy(const AcGeMatrix3d& xform) {
+	assertWriteEnabled();
+	m_center = m_center.transformBy(xform);
+	return Acad::eOk;
+}
 
 Acad::ErrorStatus SampleCustEnt::subGetGripPoints(AcGePoint3dArray& gripPoints, AcDbIntArray & osnapModes, AcDbIntArray & geomIds) const {
 	assertReadEnabled();

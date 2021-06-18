@@ -26,7 +26,7 @@
 #include "SampleCustEnt.h"
 
 //-----------------------------------------------------------------------------
-class SampleJig : public AcEdJig {
+class __declspec(dllexport) SampleJig : public AcEdJig {
 
 private:
 	//- Member variables

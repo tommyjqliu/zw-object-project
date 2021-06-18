@@ -22,6 +22,7 @@
 //-----------------------------------------------------------------------------
 #include "pch.h"
 #include "SampleJig.h"
+#include "SampleCustEnt.h"
 
 //-----------------------------------------------------------------------------
 SampleJig::SampleJig() : AcEdJig(),
@@ -48,7 +49,7 @@ AcEdJig::DragStatus SampleJig::startJig(SampleCustEnt *pEntity) {
 	bool appendOk = true;
 	AcEdJig::DragStatus status = AcEdJig::kNull;
 	//- Loop the number of inputs
-	for (mCurrentInputLevel = 0; mCurrentInputLevel < 1; mCurrentInputLevel++) {
+	for (mCurrentInputLevel = 0; mCurrentInputLevel < 2; mCurrentInputLevel++) {
 		//- Add a new input point to the list of input points
 		mInputPoints.append(AcGePoint3d());
 		//- Set the input prompt
@@ -117,14 +118,26 @@ AcEdJig::DragStatus SampleJig::sampler() {
 	setSpecialCursorType(cursorType[mCurrentInputLevel]);
 
 	AcEdJig::DragStatus status = AcEdJig::kCancel;
+	AcString inputPrompts[2] = {
+	"\nPick Center point ","\nSet Radius "
+	};
 	//- Check the current input number to see which input to do
 	switch (mCurrentInputLevel + 1) {
 	case 1:
 		// TODO : get an input here
 		//status =GetStartPoint () ;
+		setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		status = GetStartPoint();
 		break;
-
+	case 2:
+		// TODO : get an input here
+		//- Set the input prompt
+		setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		status = GetNextPoint();
+		break;
 	default:
+		setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		status = GetStartPoint();
 		break;
 	}
 	return (status);
@@ -137,9 +150,12 @@ Adesk::Boolean SampleJig::update() {
 	switch (mCurrentInputLevel + 1) {
 	case 1:
 		// TODO : update your entity for this input
-		//mpEntity->setCenter (mInputPoints [mCurrentInputLevel]) ;
+		mpEntity->setCenter (mInputPoints [mCurrentInputLevel]) ;
 		break;
-
+	case 2:
+		// TODO : update your entity for this input
+		mpEntity->setRadius(mInputPoints[mCurrentInputLevel].distanceTo(mpEntity->m_center));
+		break;
 	default:
 		break;
 	}
