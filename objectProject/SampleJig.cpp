@@ -94,7 +94,7 @@ AcEdJig::DragStatus SampleJig::startJig(SampleCustEnt *pEntity) {
 	//- If the input went well
 	if (appendOk)
 		//- Append to the database
-		append();
+		objId = append();
 	else
 		//- Clean up
 		delete mpEntity;

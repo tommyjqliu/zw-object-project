@@ -56,6 +56,8 @@ void SampleCustEnt::subViewportDraw(AcGiViewportDraw* mode) {
 
 //设置显示相关的属性
 Adesk::UInt32 SampleCustEnt::subSetAttributes(AcGiDrawableTraits *traits) {
+	assertReadEnabled();
+	traits->setColor(0);
 	return 0;
 }
 

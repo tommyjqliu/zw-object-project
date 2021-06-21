@@ -34,13 +34,14 @@ private:
 	int mCurrentInputLevel;
 	//- Dynamic dimension info
 	AcDbDimDataPtrArray mDimData;
+	
 
 public:
 	//- Array of input points, each level corresponds to the mCurrentInputLevel
 	AcGePoint3dArray mInputPoints;
 	//- Entity being jigged
 	SampleCustEnt *mpEntity;
-
+	AcDbObjectId objId;
 public:
 	SampleJig();
 	~SampleJig();

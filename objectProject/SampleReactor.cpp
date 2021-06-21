@@ -2,6 +2,8 @@
 #include "pch.h"
 #include <dbproxy.h>
 #include "SampleReactor.h"
+#include "SampleCustEnt.h"
+#include <acestext.h>
 
 ACRX_DXF_DEFINE_MEMBERS(
 	SampleReactor, AcDbObject,
@@ -13,28 +15,37 @@ ACRX_DXF_DEFINE_MEMBERS(
 	| WEB Address : Your company WEB site address
 )
 
+SampleReactor::SampleReactor()
+{
+	acutPrintf(_T("\nreactor created"));
+}
+
 SampleReactor::~SampleReactor()
 {
 }
 
+void SampleReactor::eLinkage(AcDbObjectId i, double f)
+{	
+	mId = i; 
+	mFactor = f; 
+}
+
 void SampleReactor::modified(const AcDbObject* pObj) {
-	AcDbLine *pLine = AcDbLine::cast(pObj);
-	if (!pLine) {
+	SampleCustEnt *pCustObj = SampleCustEnt::cast(pObj);
+	if (!pCustObj) {
 		return;//反应器很容易附着到错误的实体上，要注意检查
 	}
-	acutPrintf(_T("\nLine Here!"));
-	AcDbLine *pLine2 = nullptr;
-	if (acdbOpenObject((AcDbObject*&)pLine2, mId, AcDb::kForWrite) == Acad::eOk) {
-		AcGePoint3d p = pLine->startPoint();
-		AcGePoint3d q = pLine->endPoint();
-		AcGeVector3d v = q - p;
-		double len = v.length();
-		p = pLine2->startPoint();
-		q = pLine2->endPoint();
-		v = q - p;
-		v = len * mFactor * v.normal();
-		pLine2->setEndPoint(p + v);
-		pLine2->close();
+	acutPrintf(_T("\nemit reactor"));
+	SampleCustEnt *pCustObj2 = nullptr;
+	auto es = acdbOpenObject((AcDbObject*&)pCustObj2, mId, AcDb::kForWrite);
+	acutPrintf(_T("\nError Code: %s"), acadErrorStatusText(es));
+
+	if (es == Acad::eOk) {
+		pCustObj2->setRadius(pCustObj->m_radius);
+		if (pCustObj->isErased() == true) {
+			pCustObj2->erase();
+		}
+		pCustObj2->close();
 	}
 }
 

@@ -5,14 +5,14 @@ class __declspec(dllexport) SampleReactor : public AcDbObject {
 
 public:
 	ACRX_DECLARE_MEMBERS(SampleReactor);
-	SampleReactor() {};
+	SampleReactor();
 	virtual ~SampleReactor();
-	void eLinkage(AcDbObjectId i, double f = 1.0) { mId = i; mFactor = f; };
+	void eLinkage(AcDbObjectId, double = 1.0);
 	void modified(const AcDbObject*);
 	Acad::ErrorStatus dwgInFields(AcDbDwgFiler*);
 	Acad::ErrorStatus dwgOutFields(AcDbDwgFiler*) const;
 private:
-	AcDbObjectId mId; //关联的直线id
+	AcDbObjectId mId; //关联的id
 	double mFactor; //移动的倍数
 };
 
