@@ -8,7 +8,7 @@
 #include "dbidmap.h"
 #include "dbcfilrs.h"
 #include "acadstrc.h"
-
+#include "AcGraph.h"
 #include "SampleCustEnt.h"
 
 //运行时类型识别函数的实现
@@ -39,18 +39,60 @@ SampleCustEnt::~SampleCustEnt() {
 
 }
 
-void SampleCustEnt::setCenter(AcGePoint3d center)
+Acad::ErrorStatus SampleCustEnt::setCenter(AcGePoint3d center)
 {
-	assertWriteEnabled();
-	m_center = center;
+	assertWriteEnabled(false);
+	AcDbDwgFiler *pFiler = NULL;
+	if ((pFiler = undoFiler()) != NULL) {
+		undoFiler()->writeAddress(SampleCustEnt::desc());//导出实体标记
+		undoFiler()->writeItem((Adesk::Int16)kCenter);//导出属性标记
+		undoFiler()->writePoint3d(m_center);
+	}
+	m_center = center;//记得先导出完再设置新的值
+	return Acad::eOk;
 }
 
-void SampleCustEnt::setRadius(double radius)
+Acad::ErrorStatus SampleCustEnt::setRadius(double rad)
 {
-	assertWriteEnabled();
-	m_radius = radius;
+	assertWriteEnabled(false);
+	AcDbDwgFiler *pFiler = NULL;
+	if ((pFiler = undoFiler()) != NULL) {
+		undoFiler()->writeAddress(SampleCustEnt::desc());//导出实体标记
+		undoFiler()->writeItem((Adesk::Int16)kRadius);//导出属性标记
+		undoFiler()->writeDouble(m_radius);
+	}
+	m_radius = rad;//记得先导出完再设置新的值
+	return Acad::eOk;
+
 }
 
+Acad::ErrorStatus SampleCustEnt::applyPartialUndo(AcDbDwgFiler* undoFiler, AcRxClass* classObj)
+{
+	//这个classObj就是我们导出时第一个导出的实体标记
+	if (classObj != SampleCustEnt::desc())
+		return AcDbEntity::applyPartialUndo(undoFiler, classObj);
+	Adesk::Int16 shortCode;
+	undoFiler->readItem(&shortCode);
+	AcGraph::PartialUndoCode code = (AcGraph::PartialUndoCode)shortCode;
+	double rad = 0;
+	AcGePoint3d center = AcGePoint3d::kOrigin;
+	switch (code) {//根据属性标记设置不同的属性值
+	case kRadius:
+		//与dwgInFields一样，如果有多个数据，顺序要与导出时一样
+		undoFiler->readDouble(&rad);
+		setRadius(rad);//思考：为什么不直接设置m_radius？
+		break;
+	case kCenter:
+		//与dwgInFields一样，如果有多个数据，顺序要与导出时一样
+		undoFiler->readPoint3d(&center);
+		setCenter(center);//思考：为什么不直接设置m_radius？
+		break;
+	default:
+		assert(Adesk::kFalse);
+		break;
+	}
+	return Acad::eOk;
+}
 
 Adesk::Boolean SampleCustEnt::subWorldDraw(AcGiWorldDraw *mode) {
 	assertReadEnabled();

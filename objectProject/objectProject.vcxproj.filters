@@ -70,6 +70,9 @@
     <ClInclude Include="SampleReactor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SampleDrawOverrule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="objectProject.rc">

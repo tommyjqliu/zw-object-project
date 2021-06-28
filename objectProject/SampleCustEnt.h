@@ -13,8 +13,13 @@ public:
 	SampleCustEnt(const AcDbObjectId&);
 	SampleCustEnt(AcGePoint3d m_center, double m_radius);
 	virtual ~SampleCustEnt();
-	void setCenter(AcGePoint3d center);
-	void setRadius(double radius);
+	Acad::ErrorStatus setCenter(AcGePoint3d center);
+	Acad::ErrorStatus setRadius(double radius);
+	Acad::ErrorStatus applyPartialUndo(AcDbDwgFiler*, AcRxClass*);
+	enum MyEnum
+	{
+		kRadius, kCenter
+	};
 protected:
 	virtual Adesk::Boolean subWorldDraw(AcGiWorldDraw *mode);//视口无关的显示
 	virtual void subViewportDraw(AcGiViewportDraw* mode);//视口相关的显示

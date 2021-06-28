@@ -216,6 +216,7 @@
     <ClInclude Include="helloworld.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SampleCustEnt.h" />
+    <ClInclude Include="SampleDrawOverrule.h" />
     <ClInclude Include="SampleJig.h" />
     <ClInclude Include="SampleReactor.h" />
     <ClInclude Include="targetver.h" />
