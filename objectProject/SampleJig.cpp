@@ -38,8 +38,11 @@ AcEdJig::DragStatus SampleJig::startJig(SampleCustEnt *pEntity) {
 	//- Store the new entity pointer
 	mpEntity = pEntity;
 	//- Setup each input prompt
-	AcString inputPrompts[1] = {
-		"\nPick point"
+	AcString inputPrompts[4] = {
+		"\n选择放大镜中心",
+		"\n选择放大范围",
+		"\n选择像的中心",
+		"\n决定放大倍数",
 	};
 	//- Setup kwords for each input
 	AcString kwords[1] = {
@@ -49,7 +52,7 @@ AcEdJig::DragStatus SampleJig::startJig(SampleCustEnt *pEntity) {
 	bool appendOk = true;
 	AcEdJig::DragStatus status = AcEdJig::kNull;
 	//- Loop the number of inputs
-	for (mCurrentInputLevel = 0; mCurrentInputLevel < 2; mCurrentInputLevel++) {
+	for (mCurrentInputLevel = 0; mCurrentInputLevel < 4; mCurrentInputLevel++) {
 		//- Add a new input point to the list of input points
 		mInputPoints.append(AcGePoint3d());
 		//- Set the input prompt
@@ -118,25 +121,37 @@ AcEdJig::DragStatus SampleJig::sampler() {
 	setSpecialCursorType(cursorType[mCurrentInputLevel]);
 
 	AcEdJig::DragStatus status = AcEdJig::kCancel;
-	AcString inputPrompts[2] = {
+	/*AcString inputPrompts[2] = {
 	"\nPick Center point ","\nSet Radius "
-	};
+	};*/
 	//- Check the current input number to see which input to do
 	switch (mCurrentInputLevel + 1) {
 	case 1:
 		// TODO : get an input here
 		//status =GetStartPoint () ;
-		setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		//setDispPrompt(inputPrompts[mCurrentInputLevel]);
 		status = GetStartPoint();
 		break;
 	case 2:
 		// TODO : get an input here
 		//- Set the input prompt
-		setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		//setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		status = GetNextPoint();
+		break;
+	case 3:
+		// TODO : get an input here
+		//status =GetStartPoint () ;
+		//setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		status = GetStartPoint();
+		break;
+	case 4:
+		// TODO : get an input here
+		//- Set the input prompt
+		//setDispPrompt(inputPrompts[mCurrentInputLevel]);
 		status = GetNextPoint();
 		break;
 	default:
-		setDispPrompt(inputPrompts[mCurrentInputLevel]);
+		//setDispPrompt(inputPrompts[mCurrentInputLevel]);
 		status = GetStartPoint();
 		break;
 	}
@@ -155,6 +170,14 @@ Adesk::Boolean SampleJig::update() {
 	case 2:
 		// TODO : update your entity for this input
 		mpEntity->setRadius(mInputPoints[mCurrentInputLevel].distanceTo(mpEntity->m_center));
+		break;
+	case 3:
+		// TODO : update your entity for this input
+		mpEntity->setTrans(mInputPoints[mCurrentInputLevel] - mpEntity->m_center);
+		break;
+	case 4:
+		// TODO : update your entity for this input
+		mpEntity->setFactor(mInputPoints[mCurrentInputLevel].distanceTo(mInputPoints[mCurrentInputLevel - 1]) / mpEntity->m_radius);
 		break;
 	default:
 		break;

@@ -9,9 +9,12 @@
 #include "SampleCustEnt.h"
 #include "SampleReactor.h"
 #include "SampleDrawOverrule.h"
+//#include "AsdkEntCenter.h"
 
 SampleDrawOverrule* g_pSampleOverrule;
-
+//AsdkDefaultCenter* pDefaultCen;
+//AsdkCircleCenter* pCircleCen;
+//AsdkLinesCenter* pLinesCen;
 void initapp()
 {
 	g_pSampleOverrule = new SampleDrawOverrule();
@@ -19,7 +22,16 @@ void initapp()
 
 	SampleCustEnt::rxInit();//注册自定义实体
 	SampleReactor::rxInit();
+	/*AsdkEntCenter::rxInit();*/
+	
 	acrxBuildClassHierarchy();//重生成运行时类树
+
+	/*pDefaultCen = new AsdkDefaultCenter();
+	pCircleCen = new AsdkCircleCenter();
+	pLinesCen = new AsdkLinesCenter();
+	AcDbEntity::desc()->addX(AsdkEntCenter::desc(), pDefaultCen);
+	AcDbCircle::desc()->addX(AsdkEntCenter::desc(), pCircleCen);
+	AcDbPolyline::desc()->addX(AsdkEntCenter::desc(), pLinesCen);*/
 }
 
 void unloadapp()
@@ -30,9 +42,18 @@ void unloadapp()
 		delete g_pSampleOverrule;
 		g_pSampleOverrule = nullptr;
 	}
+	//AcDbEntity::desc()->delX(AsdkEntCenter::desc());
+	//delete pDefaultCen;
+	//AcDbCircle::desc()->delX(AsdkEntCenter::desc());
+	//delete pCircleCen;
+	//AcDbPolyline::desc()->delX(AsdkEntCenter::desc());
+	//delete pLinesCen;
 
 	deleteAcRxClass(SampleCustEnt::desc());//注销自定义实体
 	deleteAcRxClass(SampleReactor::desc());//注销自定义实体
+	//deleteAcRxClass(AsdkEntCenter::desc());
+
+
 }
 
 

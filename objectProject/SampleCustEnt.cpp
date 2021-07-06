@@ -9,6 +9,7 @@
 #include "dbcfilrs.h"
 #include "acadstrc.h"
 #include "AcGraph.h"
+
 #include "SampleCustEnt.h"
 
 //运行时类型识别函数的实现
@@ -25,12 +26,9 @@ ACRX_DXF_DEFINE_MEMBERS(
 Adesk::UInt32 SampleCustEnt::kCurrentVersionNumber = 1;
 
 SampleCustEnt::SampleCustEnt() {
+	
+}
 
-}
-SampleCustEnt::SampleCustEnt(const AcDbObjectId &id) : AcDbEntity()
-{
-	m_srcId = id;
-}
 SampleCustEnt::SampleCustEnt(AcGePoint3d center, double radius) {
 	m_center = center;
 	m_radius = radius;
@@ -49,6 +47,7 @@ Acad::ErrorStatus SampleCustEnt::setCenter(AcGePoint3d center)
 		undoFiler()->writePoint3d(m_center);
 	}
 	m_center = center;//记得先导出完再设置新的值
+	this->zoom();
 	return Acad::eOk;
 }
 
@@ -62,8 +61,36 @@ Acad::ErrorStatus SampleCustEnt::setRadius(double rad)
 		undoFiler()->writeDouble(m_radius);
 	}
 	m_radius = rad;//记得先导出完再设置新的值
+	this->zoom();
 	return Acad::eOk;
 
+}
+
+Acad::ErrorStatus SampleCustEnt::setTrans(AcGeVector3d trans)
+
+{
+	assertWriteEnabled(false);
+	AcDbDwgFiler *pFiler = NULL;
+	if ((pFiler = undoFiler()) != NULL) {
+		undoFiler()->writeAddress(SampleCustEnt::desc());//导出实体标记
+		undoFiler()->writeItem((Adesk::Int16)kTrans);//导出属性标记
+		undoFiler()->writeVector3d(m_trans);
+	}
+	m_trans = trans;
+	return Acad::eOk;
+}
+
+Acad::ErrorStatus SampleCustEnt::setFactor(double fac)
+{
+	assertWriteEnabled(false);
+	AcDbDwgFiler *pFiler = NULL;
+	if ((pFiler = undoFiler()) != NULL) {
+		undoFiler()->writeAddress(SampleCustEnt::desc());//导出实体标记
+		undoFiler()->writeItem((Adesk::Int16)kFactor);//导出属性标记
+		undoFiler()->writeDouble(m_factor);
+	}
+	m_factor = fac;//记得先导出完再设置新的值
+	return Acad::eOk;
 }
 
 Acad::ErrorStatus SampleCustEnt::applyPartialUndo(AcDbDwgFiler* undoFiler, AcRxClass* classObj)
@@ -76,6 +103,8 @@ Acad::ErrorStatus SampleCustEnt::applyPartialUndo(AcDbDwgFiler* undoFiler, AcRxC
 	AcGraph::PartialUndoCode code = (AcGraph::PartialUndoCode)shortCode;
 	double rad = 0;
 	AcGePoint3d center = AcGePoint3d::kOrigin;
+	double factor = 2;
+	AcGeVector3d trans = AcGeVector3d(100, 100, 0);
 	switch (code) {//根据属性标记设置不同的属性值
 	case kRadius:
 		//与dwgInFields一样，如果有多个数据，顺序要与导出时一样
@@ -87,22 +116,127 @@ Acad::ErrorStatus SampleCustEnt::applyPartialUndo(AcDbDwgFiler* undoFiler, AcRxC
 		undoFiler->readPoint3d(&center);
 		setCenter(center);//思考：为什么不直接设置m_radius？
 		break;
+	case kFactor:
+		undoFiler->readDouble(&factor);
+		setFactor(factor);
+		break;
+	case kTrans:
+		undoFiler->readVector3d(&trans);
+		setTrans(trans);
+		break;
 	default:
 		assert(Adesk::kFalse);
 		break;
 	}
+	this->zoom();
 	return Acad::eOk;
 }
 
+
+//struct resbuf * asBuf( AcGePoint3dArray& pts) {
+//	struct resbuf *head;
+//	struct resbuf *now;
+//
+//	now = acutNewRb(RT3DPOINT);
+//	head = now;
+//	for (int i = 0; i < pts.length(); i++) {
+//		now->resval.rpoint[X] = pts[i][X];
+//		now->resval.rpoint[Y] = pts[i][Y];
+//		now->resval.rpoint[Z] = pts[i][Z];
+//		now->rbnext = acutNewRb(RT3DPOINT);
+//		now = now->rbnext;
+//	}
+//	acutRelRb(now->rbnext);
+//	now->rbnext = nullptr;
+//	return head;
+//}
+
 Adesk::Boolean SampleCustEnt::subWorldDraw(AcGiWorldDraw *mode) {
 	assertReadEnabled();
+
+	AcGiWorldGeometry * pGeom = &mode->geometry();
 	mode->geometry().circle(m_center, m_radius, AcGeVector3d::kZAxis);
+
+	mode->geometry().pushModelTransform(AcGeMatrix3d::translation(m_trans));
+	mode->geometry().pushModelTransform(AcGeMatrix3d::scaling(m_factor, m_center));
+	
+	mode->geometry().circle(m_center, m_radius, AcGeVector3d::kZAxis);
+	Adesk::Boolean bPopClipBoundary = pGeom->pushClipBoundary(&cb);
+
+	for (auto i = 0; i < zoomE.size(); i++)
+	{
+		AcDbEntity* pEnt = nullptr;
+		acdbOpenAcDbEntity(pEnt, zoomE[i], AcDb::kForRead);
+		if (pEnt)
+		{
+			mode->geometry().draw(pEnt);
+			pEnt->close();
+		}
+	}
+	
+	//mode->geometry().popModelTransform();
+	mode->geometry().popModelTransform();
+	if (bPopClipBoundary)
+	{
+		pGeom->popClipBoundary();
+	}
+
 	return (AcDbEntity::subWorldDraw(mode));
 }
 
-//视口相关的显示
-void SampleCustEnt::subViewportDraw(AcGiViewportDraw* mode) {
+void SampleCustEnt::zoom()
+{
+	assertWriteEnabled();
+	zoomE.clear();
+	cb.m_aptPoints.removeAll();
 
+	auto pCir = new AcDbCircle(m_center, AcGeVector3d::kZAxis, m_radius);
+	AcDbExtents ext;
+	pCir->getGeomExtents(ext);
+
+	AcGeCurve3d* pGeCrv = nullptr;
+	pCir->getAcGeCurve(pGeCrv);
+	pCir->close();
+	delete pCir;
+	pCir = nullptr;
+	AcGePoint3dArray pts;
+	pGeCrv->getSamplePoints(50, pts);//对曲线取样
+	delete pGeCrv;//用完要delete掉
+	pGeCrv = nullptr;
+	
+	ads_name ss;
+	//struct resbuf * buf = asBuf(pts);
+	// acedSSGet(_T("CP"), buf, NULL, NULL, ss);
+	acedSSGet(_T("C"), asDblArray(ext.minPoint()), asDblArray(ext.maxPoint()), NULL, ss);
+
+	Adesk::Int32 len = 0;
+	acedSSLength(ss, &len);
+	// acutPrintf(_T("实体%s个"), len);
+	for (auto i = 0; i < len; i++) {
+		ads_name en;
+		acedSSName(ss, i, en);
+		AcDbObjectId objId;
+		acdbGetObjectId(objId, en);
+		zoomE.push_back(objId);
+	}
+	acedSSFree(ss);
+
+	cb.m_bDrawBoundary = true;
+	cb.m_vNormal = AcGeVector3d::kZAxis;
+	cb.m_ptPoint = m_center;
+	
+	for (int i = 0; i < pts.logicalLength(); i++) {
+		cb.m_aptPoints.append(AcGePoint2d(pts[i][X], pts[i][Y]));
+	}
+
+	cb.m_xToClipSpace.setToIdentity();
+	cb.m_xInverseBlockRefXForm.setToIdentity();
+	cb.m_bClippingBack = cb.m_bClippingFront = false;
+	cb.m_dFrontClipZ = cb.m_dBackClipZ = 0;
+}
+//视口相关的显示
+void SampleCustEnt::subViewportDraw(AcGiViewportDraw* pV) {
+	
 }
 
 //设置显示相关的属性
@@ -114,7 +248,7 @@ Adesk::UInt32 SampleCustEnt::subSetAttributes(AcGiDrawableTraits *traits) {
 
 Acad::ErrorStatus SampleCustEnt::subTransformBy(const AcGeMatrix3d& xform) {
 	assertWriteEnabled();
-	m_center = m_center.transformBy(xform);
+	this->setCenter( m_center.transformBy(xform));
 	return Acad::eOk;
 }
 
@@ -130,6 +264,12 @@ Acad::ErrorStatus SampleCustEnt::subGetGripPoints(AcGePoint3dArray& gripPoints, 
 	gripPoints.append(right);
 	gripPoints.append(up);
 	gripPoints.append(down);
+	gripPoints.append(m_center + m_trans);
+	gripPoints.append(AcGePoint3d(m_center.x - m_radius * m_factor, m_center.y, 0) + m_trans);
+	gripPoints.append(AcGePoint3d(m_center.x + m_radius * m_factor, m_center.y, 0) + m_trans);
+	gripPoints.append(AcGePoint3d(m_center.x , m_center.y + m_radius * m_factor, 0) + m_trans);
+	gripPoints.append(AcGePoint3d(m_center.x , m_center.y - m_radius * m_factor, 0) + m_trans);
+	
 	return Acad::eOk;
 }
 Acad::ErrorStatus SampleCustEnt::subMoveGripPointsAt(const AcDbIntArray & indices, const AcGeVector3d& offset) {
@@ -139,23 +279,44 @@ Acad::ErrorStatus SampleCustEnt::subMoveGripPointsAt(const AcDbIntArray & indice
 	double diff = 0;
 	switch (indices[0]) {
 	case 0:
-		m_center += offset;
+		this->setCenter(m_center += offset);
 		break;
 	case 1:
 		selectVector = AcGeVector3d(-m_radius, 0, 0);
-		m_radius = (selectVector + offset).length();
+		this->setRadius((selectVector + offset).length());
+		//m_radius = (selectVector + offset).length();
 		break;
 	case 2:
 		selectVector = AcGeVector3d(m_radius, 0, 0);
-		m_radius = (selectVector + offset).length();
+		this->setRadius((selectVector + offset).length());
 		break;
 	case 3:
 		selectVector = AcGeVector3d(0, m_radius, 0);
-		m_radius = (selectVector + offset).length();
+		this->setRadius((selectVector + offset).length());
 		break;
 	case 4:
 		selectVector = AcGeVector3d(0, -m_radius, 0);
-		m_radius = (selectVector + offset).length();
+		this->setRadius((selectVector + offset).length());
+		break;
+	case 5:
+		this->setTrans(m_trans + offset);
+		break;
+	case 6:
+		selectVector = AcGeVector3d(-m_radius, 0, 0) * m_factor;
+		this->setFactor((selectVector + offset).length() / m_radius);
+		//m_radius = (selectVector + offset).length();
+		break;
+	case 7:
+		selectVector = AcGeVector3d(m_radius, 0, 0)* m_factor;
+		this->setFactor((selectVector + offset).length() / m_radius);
+		break;
+	case 8:
+		selectVector = AcGeVector3d(0, m_radius, 0)* m_factor;
+		this->setFactor((selectVector + offset).length() / m_radius);
+		break;
+	case 9:
+		selectVector = AcGeVector3d(0, -m_radius, 0)* m_factor;
+		this->setFactor((selectVector + offset).length() / m_radius);
 		break;
 	}
 	
@@ -190,9 +351,8 @@ Acad::ErrorStatus SampleCustEnt::dwgInFields(AcDbDwgFiler * pFiler)
 	//----- Read params
 	pFiler->readPoint3d(&m_center);
 	pFiler->readDouble(&m_radius);
-	AcDbHardPointerId id;
-	pFiler->readHardPointerId(&id);
-	m_srcId = id;
+	pFiler->readVector3d(&m_trans);
+	pFiler->readDouble(&m_factor);
 	return (pFiler->filerStatus());
 
 }
@@ -212,8 +372,8 @@ Acad::ErrorStatus SampleCustEnt::dwgOutFields(AcDbDwgFiler * pFiler) const
 	//----- Output params
 	pFiler->writePoint3d(m_center);
 	pFiler->writeDouble(m_radius);
-	AcDbHardPointerId id(m_srcId);
-	pFiler->writeHardPointerId(id);
+	pFiler->writeVector3d(m_trans);
+	pFiler->writeDouble(m_factor);
 	return (pFiler->filerStatus());
 
 }
